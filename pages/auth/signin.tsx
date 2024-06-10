@@ -68,7 +68,7 @@ export default function SignIn({ providers }: InferGetServerSidePropsType<typeof
                 </form>
                 {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
                 <div className="mt-6 text-center">
-                    <p className="text-gray-700">Don't have an account?</p>
+                    <p className="text-gray-700">Don&#39;t have an account?</p>
                     <Link href="/auth/signup" legacyBehavior>
                         <a className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 block mt-2">
                             Sign up
