@@ -21,7 +21,7 @@ export default function WalletConnect() {
             console.log('Session found:', session);
             checkWalletConnection();
         }
-    }, [session, status]);
+    }, [session, status, router]); // Add `router` to the dependency array
 
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof window.ethereum !== 'undefined') {

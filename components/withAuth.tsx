@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { ethers } from 'ethers';
 
 const withAuth = (WrappedComponent: any) => {
-    return (props: any) => {
+    const AuthComponent = (props: any) => {
         const { data: session, status } = useSession();
         const [account, setAccount] = useState<string | null>(null);
         const router = useRouter();
@@ -22,7 +22,7 @@ const withAuth = (WrappedComponent: any) => {
             return () => {
                 removeEventListeners();
             };
-        }, [session, status]);
+        }, [session, status, router]);
 
         const checkWalletConnection = async () => {
             if (typeof window !== 'undefined' && typeof window.ethereum !== 'undefined') {
@@ -79,6 +79,10 @@ const withAuth = (WrappedComponent: any) => {
 
         return <WrappedComponent {...props} account={account} />;
     };
+
+    AuthComponent.displayName = `withAuth(${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`;
+
+    return AuthComponent;
 };
 
 export default withAuth;
