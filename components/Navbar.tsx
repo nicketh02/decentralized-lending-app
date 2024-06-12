@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { ethers } from 'ethers';
@@ -25,9 +26,18 @@ const Navbar = () => {
 
     return (
         <nav className="bg-gray-800 p-4 flex justify-between items-center">
+            <div className="text-white">Decentralized Lending DApp</div>
             <div className="flex items-center ml-auto space-x-4">
+                <Link href="/" legacyBehavior>
+                    <a className="text-white">Home</a>
+                </Link>
                 {session && (
                     <>
+                        {session.user.type === 'Lender' && (
+                            <Link href="/Lenders">
+                                <a className="text-white">Lender Section</a>
+                            </Link>
+                        )}
                         <div className="text-white">
                             {account ? (
                                 <span className="block text-sm">{account}</span>
