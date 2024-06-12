@@ -1,0 +1,25 @@
+{
+    "builds": [
+        {
+            "src": "package.json",
+            "use": "@vercel/node",
+            "config": {
+                "includeFiles": [
+                    "prisma/schema.prisma"
+                ]
+            }
+        }
+    ],
+    "functions": {
+        "api/auth/[...nextauth].js": {
+            "runtime": "nodejs16.x",
+            "includeFiles": "prisma/schema.prisma"
+        }
+    },
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "/api"
+        }
+    ]
+}
