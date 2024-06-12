@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { ethers } from 'ethers';
 
 const Navbar = () => {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const [account, setAccount] = useState<string | null>(null);
 
     useEffect(() => {
@@ -24,6 +24,14 @@ const Navbar = () => {
         checkWalletConnection();
     }, []);
 
+    if (status === "loading") {
+        return <div className="flex items-center justify-center min-h-screen text-lg">Loading...</div>;
+    }
+
+    if (!session || !session.user) {
+        return <div className="flex items-center justify-center min-h-screen text-lg">Please log in to continue</div>;
+    }
+
     return (
         <nav className="bg-gray-800 p-4 flex justify-between items-center">
             <div className="text-white">Decentralized Lending DApp</div>
@@ -31,28 +39,24 @@ const Navbar = () => {
                 <Link href="/" legacyBehavior>
                     <a className="text-white">Home</a>
                 </Link>
-                {session && (
-                    <>
-                        {session.user.type === 'Lender' && (
-                            <Link href="/Lenders">
-                                <a className="text-white">Lender Section</a>
-                            </Link>
-                        )}
-                        <div className="text-white">
-                            {account ? (
-                                <span className="block text-sm">{account}</span>
-                            ) : (
-                                <span className="block text-sm">No Wallet Connected</span>
-                            )}
-                        </div>
-                        <button
-                            onClick={() => signOut()}
-                            className="bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600"
-                        >
-                            Logout
-                        </button>
-                    </>
+                {session.user && (
+                    <Link href="/Lenders" legacyBehavior>
+                        <a className="text-white">Lender Section</a>
+                    </Link>
                 )}
+                <div className="text-white">
+                    {account ? (
+                        <span className="block text-sm">{account}</span>
+                    ) : (
+                        <span className="block text-sm">No Wallet Connected</span>
+                    )}
+                </div>
+                <button
+                    onClick={() => signOut()}
+                    className="bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600"
+                >
+                    Logout
+                </button>
             </div>
         </nav>
     );

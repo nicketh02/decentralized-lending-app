@@ -4,6 +4,13 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import prisma from '../../../lib/prisma';
 import bcrypt from 'bcrypt';
 
+interface User {
+    id: string;
+    email: string;
+    address: string;
+    type: string;
+}
+
 export default NextAuth({
     providers: [
         CredentialsProvider({
@@ -30,6 +37,7 @@ export default NextAuth({
                 if (!isValidPassword) {
                     return null;
                 }
+
                 return { id: String(user.user_id), email: user.email, address: user.address, type: user.type };
             }
         })
@@ -39,6 +47,9 @@ export default NextAuth({
     session: {
         strategy: 'jwt',
     },
+    jwt: {
+        secret: process.env.SECRET,
+    },
     pages: {
         signIn: '/auth/signin',
         error: '/auth/error',
@@ -46,14 +57,12 @@ export default NextAuth({
     },
     callbacks: {
         async session({ session, token }) {
-            console.log('Session callback:', token);
             if (token.user) {
-                session.user = token.user;
+                session.user = token.user as User;
             }
             return session;
         },
         async jwt({ token, user }) {
-            console.log('JWT callback:', { token, user });
             if (user) {
                 token.user = user;
             }

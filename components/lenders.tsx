@@ -13,7 +13,7 @@ const Lenders = () => {
     const escrowabi = escrowABI["abi"];
     const lenderabi = lenderABI["abi"];
     const tokenabi = tokenABI["abi"];
-    const escrowContractAddress = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS;
+    const escrowContractAddress = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS ? process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS : "0x0";
     const tokenContractAddress = process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS;
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = provider.getSigner();
@@ -42,8 +42,8 @@ const Lenders = () => {
                 const interest = await lenderContract.totalInterestGained((await provider.getSigner()).getAddress());
                 console.log("total interest gained - ", interest);
 
-                await setCurrentDeposit(ethers.formatUnits(lenderInfo.amount, 'wei'));
-                await setInterestEarned(ethers.formatUnits(interest, 'wei'));
+                setCurrentDeposit(parseFloat(ethers.formatUnits(lenderInfo.amount, 'wei')));
+                setInterestEarned(parseFloat(ethers.formatUnits(interest, 'wei')));
             } catch (error) {
                 console.error('Error fetching deposit info:', error);
             }
