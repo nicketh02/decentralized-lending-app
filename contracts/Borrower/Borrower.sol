@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Borrower is Ownable {
-    uint256 public constant collateralAmount = 100 * 10 ** 18; // Fixed amount of collateral
+    uint256 public constant collateralAmount = 100; // Fixed amount of collateral
 
     uint256 public interestRate;
 
@@ -38,7 +38,7 @@ contract Borrower is Ownable {
             borrowerInfo.stackedTokens >= collateralAmount,
             "Not enough staked tokens"
         );
-        require(borrowerInfo.repaymentAmount > 0, "Plz repay previous loan");
+        require(borrowerInfo.repaymentAmount == 0, "Plz repay previous loan");
         borrowerInfo.borrowTime = block.timestamp;
         borrowerInfo.loanDuration = _loanDuration;
         borrowerInfo.repaymentAmount =
@@ -62,7 +62,7 @@ contract Borrower is Ownable {
             borrower.repaymentAmount -= _amount;
             return (false, refund);
         } else {
-            refund = borrower.repaymentAmount - _amount;
+            refund = _amount - borrower.repaymentAmount;
             borrower.repaymentAmount = 0;
             return (true, refund);
         }

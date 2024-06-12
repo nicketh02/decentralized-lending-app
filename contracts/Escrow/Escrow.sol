@@ -14,7 +14,7 @@ contract Escrow is Ownable {
     constructor(uint256 _interestrate) payable Ownable(msg.sender) {
         token = new PlatformToken();
         lenderContract = new Lender(_interestrate);
-        // borrowerContract = new borrower;
+        borrowerContract = new Borrower(500);
     }
 
     function getTokens(uint256 _amount) public {
@@ -57,9 +57,9 @@ contract Escrow is Ownable {
         }
     }
 
-    // function claimCollateral(address borrower) external {
-    //     borrowerContract.claimCollateral(borrower);
-    // }
+    function claimCollateral(address _borrowerAddress) external {
+        borrowerContract.claimCollateral(_borrowerAddress);
+    }
 
     receive() external payable {
         deposit();
