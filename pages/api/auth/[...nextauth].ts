@@ -1,3 +1,4 @@
+// pages/api/auth/[...nextauth].ts
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
@@ -52,11 +53,10 @@ export default NextAuth({
     },
     pages: {
         signIn: '/auth/signin',
-        error: '/auth/error',
-        newUser: '/auth/new-user'
+        error: '/auth/signin',
     },
     callbacks: {
-        async session({ session, token }) {
+        async session({ session, token, user }) {
             if (token.user) {
                 session.user = token.user as User;
             }
@@ -64,7 +64,7 @@ export default NextAuth({
         },
         async jwt({ token, user }) {
             if (user) {
-                token.user = user;
+                token.user = user as User;
             }
             return token;
         },

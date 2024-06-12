@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useSession, signOut } from 'next-auth/react';
 import { ethers, JsonRpcSigner } from 'ethers';
+import Layout from '../../components/layout';
+
 
 export default function WalletConnect() {
     const { data: session, status } = useSession();
@@ -89,34 +91,36 @@ export default function WalletConnect() {
     if (!session) return null;
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-            <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
-                <h1 className="text-3xl font-bold mb-6">Welcome, {session.user?.email}</h1>
-                {account ? (
-                    <>
-                        <p className="text-lg text-gray-700 mb-6 break-all">Connected account: {account}</p>
+        <Layout>
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+                <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
+                    <h1 className="text-3xl font-bold mb-6">Welcome, {session.user?.email}</h1>
+                    {account ? (
+                        <>
+                            <p className="text-lg text-gray-700 mb-6 break-all">Connected account: {account}</p>
+                            <button
+                                onClick={() => router.push('/dashboard')}
+                                className="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 mb-4"
+                            >
+                                Go to Dashboard
+                            </button>
+                        </>
+                    ) : (
                         <button
-                            onClick={() => router.push('/dashboard')}
-                            className="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 mb-4"
+                            onClick={connectWallet}
+                            className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 mb-4"
                         >
-                            Go to Dashboard
+                            Connect Wallet
                         </button>
-                    </>
-                ) : (
+                    )}
                     <button
-                        onClick={connectWallet}
-                        className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 mb-4"
+                        onClick={() => signOut()}
+                        className="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600"
                     >
-                        Connect Wallet
+                        Sign out
                     </button>
-                )}
-                <button
-                    onClick={() => signOut()}
-                    className="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600"
-                >
-                    Sign out
-                </button>
+                </div>
             </div>
-        </div>
+        </Layout>
     );
 }

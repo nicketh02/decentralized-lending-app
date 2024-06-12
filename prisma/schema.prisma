@@ -23,3 +23,11 @@ model User {
 
   @@index([email])
 }
+
+model AllDealsLenders {
+  id             Int      @id @default(autoincrement())
+  type           String
+  amount         Float
+  interestGained Float?
+  dateTime       DateTime @default(now())
+}

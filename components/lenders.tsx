@@ -10,6 +10,7 @@ const Lenders = () => {
     const [depositAmount, setDepositAmount] = useState('');
     const [currentDeposit, setCurrentDeposit] = useState(0);
     const [interestEarned, setInterestEarned] = useState(0);
+    const [interestRate, setInterestRate] = useState(0);
     const escrowabi = escrowABI["abi"];
     const lenderabi = lenderABI["abi"];
     const tokenabi = tokenABI["abi"];
@@ -40,10 +41,12 @@ const Lenders = () => {
 
                 const lenderInfo = await lenderContract.lenders((await provider.getSigner()).getAddress());
                 const interest = await lenderContract.totalInterestGained((await provider.getSigner()).getAddress());
+                const rate = await lenderContract.interestRate();
                 console.log("total interest gained - ", interest);
 
                 setCurrentDeposit(parseFloat(ethers.formatUnits(lenderInfo.amount, 'wei')));
                 setInterestEarned(parseFloat(ethers.formatUnits(interest, 'wei')));
+                setInterestRate(parseFloat(ethers.formatUnits(rate, 'wei')));
             } catch (error) {
                 console.error('Error fetching deposit info:', error);
             }
@@ -85,31 +88,39 @@ const Lenders = () => {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
             <h2 className="text-2xl font-bold mb-4">Lender Section</h2>
-            <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
-                <div className="mb-4">
-                    <h3 className="text-lg font-semibold">Current Deposit</h3>
-                    <p>{currentDeposit} Wei</p>
+            <div className="bg-white p-6 rounded shadow-md w-full max-w-4xl flex">
+                <div className="w-1/2 p-4">
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold">Current Deposit</h3>
+                        <p>{currentDeposit} Wei</p>
+                    </div>
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold">Interest Earned</h3>
+                        <p>{interestEarned} Wei</p>
+                    </div>
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold">Interest Rate</h3>
+                        <p>{interestRate / 100} %</p>
+                    </div>
                 </div>
-                <div className="mb-4">
-                    <h3 className="text-lg font-semibold">Interest Earned</h3>
-                    <p>{interestEarned} Wei</p>
-                </div>
-                <div className="mb-4">
-                    <input
-                        type="number"
-                        value={depositAmount}
-                        onChange={(e) => setDepositAmount(e.target.value)}
-                        placeholder="Deposit Amount in Wei"
-                        className="w-full p-2 border rounded"
-                    />
-                    <button onClick={handleDeposit} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
-                        Deposit
-                    </button>
-                </div>
-                <div className="mb-4">
-                    <button onClick={handleWithdraw} className="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">
-                        Withdraw
-                    </button>
+                <div className="w-1/2 p-4">
+                    <div className="mb-4">
+                        <input
+                            type="number"
+                            value={depositAmount}
+                            onChange={(e) => setDepositAmount(e.target.value)}
+                            placeholder="Deposit Amount in Wei"
+                            className="w-full p-2 border rounded"
+                        />
+                        <button onClick={handleDeposit} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                            Deposit
+                        </button>
+                    </div>
+                    <div className="mb-4">
+                        <button onClick={handleWithdraw} className="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">
+                            Withdraw
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

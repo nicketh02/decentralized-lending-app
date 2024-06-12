@@ -9,7 +9,9 @@ const Borrowers = () => {
     const { data: session } = useSession();
     const [borrowAmount, setBorrowAmount] = useState('');
     const [loanDuration, setLoanDuration] = useState('');
-    const [stakeAmount, setStakeAmount] = useState(''); // New state variable for staking amount
+    const [stakeAmount, setStakeAmount] = useState('');
+    const [tokenAmount, setTokenAmount] = useState('');
+    const [approveAmount, setApproveAmount] = useState('');
     const [borrowerInfo, setBorrowerInfo] = useState(null);
     const [repaymentAmount, setRepaymentAmount] = useState(0);
     const [timeLeft, setTimeLeft] = useState(0);
@@ -26,10 +28,12 @@ const Borrowers = () => {
     useEffect(() => {
         if (session) {
             fetchBorrowerInfo();
-            const interval = setInterval(fetchBorrowerInfo, 10000); // Refresh every 10 seconds
-            return () => clearInterval(interval); // Cleanup on component unmount
+            if (repaymentAmount > 0) {
+                const interval = setInterval(fetchBorrowerInfo, 10000); // Refresh every 10 seconds
+                return () => clearInterval(interval); // Cleanup on component unmount
+            }
         }
-    }, [session]);
+    }, [session, repaymentAmount]);
 
     const fetchBorrowerInfo = async () => {
         if (typeof window.ethereum !== 'undefined') {
@@ -57,7 +61,7 @@ const Borrowers = () => {
         if (typeof window.ethereum !== 'undefined') {
             try {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
-                const tx = await escrowContract.getTokens(ethers.parseUnits(borrowAmount, 'wei'));
+                const tx = await escrowContract.getTokens(ethers.parseUnits(tokenAmount, 'wei'));
                 await tx.wait();
                 fetchBorrowerInfo();
             } catch (error) {
@@ -70,7 +74,7 @@ const Borrowers = () => {
         if (typeof window.ethereum !== 'undefined') {
             try {
                 const tokenContract = new ethers.Contract(tokenContractAddress, tokenabi, await signer);
-                const tx = await tokenContract.approve(escrowContractAddress, ethers.parseUnits(borrowAmount, 'wei'));
+                const tx = await tokenContract.approve(escrowContractAddress, ethers.parseUnits(approveAmount, 'wei'));
                 await tx.wait();
                 fetchBorrowerInfo();
             } catch (error) {
@@ -82,8 +86,15 @@ const Borrowers = () => {
     const handleBorrow = async () => {
         if (typeof window.ethereum !== 'undefined') {
             try {
+                if (borrowAmount === '' || loanDuration === '') {
+                    throw new Error('Borrow amount and loan duration must be provided');
+                }
+
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
-                const tx = await escrowContract.borrow(ethers.parseUnits(borrowAmount, 'wei'), loanDuration);
+                const tx = await escrowContract.borrow(
+                    ethers.parseUnits(borrowAmount, 'wei'),
+                    parseInt(loanDuration, 10)
+                );
                 await tx.wait();
                 fetchBorrowerInfo();
             } catch (error) {
@@ -110,7 +121,6 @@ const Borrowers = () => {
             try {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
 
-                // Check if the borrower can claim collateral
                 const borrowerContractAddress = await escrowContract.borrowerContract();
                 const borrowerContract = new ethers.Contract(borrowerContractAddress, borrowerabi, await signer);
 
@@ -131,7 +141,6 @@ const Borrowers = () => {
             }
         }
     };
-
 
     const handleStakeTokens = async () => {
         if (typeof window.ethereum !== 'undefined') {
@@ -181,26 +190,37 @@ const Borrowers = () => {
                         placeholder="Loan Duration in seconds"
                         className="w-full p-2 border rounded mt-2"
                     />
-                    <button onClick={handleGetTokens} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
-                        Get {borrowAmount} Tokens
-                    </button>
-                    <button onClick={handleApprove} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
-                        Approve Tokens
-                    </button>
                     <button onClick={handleBorrow} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
                         Borrow
                     </button>
                 </div>
                 <div className="mb-4">
-                    <input
-                        type="number"
-                        value={repaymentAmount}
-                        onChange={(e) => setRepaymentAmount(Number(e.target.value))}
-                        placeholder="Repayment Amount in Wei"
-                        className="w-full p-2 border rounded"
-                    />
                     <button onClick={handleRepay} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
                         Repay
+                    </button>
+                </div>
+                <div className="mb-4">
+                    <input
+                        type="number"
+                        value={tokenAmount}
+                        onChange={(e) => setTokenAmount(e.target.value)}
+                        placeholder="Get Tokens Amount in Wei"
+                        className="w-full p-2 border rounded"
+                    />
+                    <button onClick={handleGetTokens} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                        Get Tokens
+                    </button>
+                </div>
+                <div className="mb-4">
+                    <input
+                        type="number"
+                        value={approveAmount}
+                        onChange={(e) => setApproveAmount(e.target.value)}
+                        placeholder="Approve Tokens Amount in Wei"
+                        className="w-full p-2 border rounded"
+                    />
+                    <button onClick={handleApprove} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                        Approve Tokens
                     </button>
                 </div>
                 <div className="mb-4">
@@ -225,7 +245,6 @@ const Borrowers = () => {
                     </button>
                     {!canClaimCollateral && <p className="text-red-500 text-sm">Cannot claim collateral until the loan duration expires and repayment is due.</p>}
                 </div>
-
             </div>
         </div>
     );
