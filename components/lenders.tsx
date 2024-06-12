@@ -4,6 +4,14 @@ import { useSession } from 'next-auth/react';
 import escrowABI from '../contracts/Escrow.sol/Escrow.json';
 import lenderABI from '../contracts/Lender.sol/Lender.json';
 import tokenABI from '../contracts/PlatformToken.sol/PlatformToken.json';
+import axios from 'axios';
+
+interface Deal {
+    type: string;
+    amount: number;
+    interestGained: number;
+    dateTime: string;
+}
 
 const Lenders = () => {
     const { data: session } = useSession();
@@ -11,6 +19,8 @@ const Lenders = () => {
     const [currentDeposit, setCurrentDeposit] = useState(0);
     const [interestEarned, setInterestEarned] = useState(0);
     const [interestRate, setInterestRate] = useState(0);
+    const [allDeals, setAllDeals] = useState<Deal[]>([]);
+    const [showAllDeals, setShowAllDeals] = useState(false);
     const escrowabi = escrowABI["abi"];
     const lenderabi = lenderABI["abi"];
     const tokenabi = tokenABI["abi"];
@@ -22,6 +32,7 @@ const Lenders = () => {
     useEffect(() => {
         if (session) {
             fetchDepositInfo();
+            fetchAllDeals(Number(session.user.id));
             const interval = setInterval(fetchDepositInfo, 10000); // Refresh every 10 seconds
             return () => clearInterval(interval); // Cleanup on component unmount
         }
@@ -53,6 +64,17 @@ const Lenders = () => {
         }
     };
 
+    const fetchAllDeals = async (userId: number) => {
+        try {
+            const response = await axios.get('/api/deals-lenders', {
+                params: { userId }
+            });
+            setAllDeals(response.data.reverse()); // Reverse the order of the deals
+        } catch (error) {
+            console.error('Error fetching all deals:', error);
+        }
+    };
+
     const handleDeposit = async () => {
         if (typeof window.ethereum !== 'undefined') {
             try {
@@ -61,6 +83,7 @@ const Lenders = () => {
                 const tx = await escrowContract.deposit({ value: ethers.parseUnits(depositAmount, 'wei') });
                 await tx.wait();
                 await fetchDepositInfo();
+                await saveDeal('deposit', parseFloat(depositAmount), 0, Number(session?.user.id)); // No interest for deposit
             } catch (error) {
                 console.error('Error during deposit:', error);
             }
@@ -74,10 +97,27 @@ const Lenders = () => {
 
                 const tx = await escrowContract.withdraw();
                 await tx.wait();
-                fetchDepositInfo();
+                await fetchDepositInfo();
+                const totalAmount = currentDeposit + interestEarned;
+                await saveDeal('withdraw', totalAmount, interestEarned, Number(session?.user.id));
             } catch (error) {
                 console.error('Error during withdraw:', error);
             }
+        }
+    };
+
+    const saveDeal = async (type: string, amount: number, interestGained: number, userId: number) => {
+        try {
+            await axios.post('/api/deals-lenders', {
+                type,
+                amount,
+                interestGained,
+                dateTime: new Date().toISOString(),
+                userId,
+            });
+            await fetchAllDeals(userId);
+        } catch (error) {
+            console.error('Error saving deal:', error);
         }
     };
 
@@ -122,6 +162,36 @@ const Lenders = () => {
                         </button>
                     </div>
                 </div>
+            </div>
+            <div className="bg-white p-6 rounded shadow-md w-full max-w-4xl mt-6">
+                <button
+                    onClick={() => setShowAllDeals(!showAllDeals)}
+                    className="mb-4 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+                >
+                    {showAllDeals ? 'Collapse All Deals' : 'Show All Deals'}
+                </button>
+                {showAllDeals && (
+                    <table className="min-w-full bg-white">
+                        <thead>
+                            <tr>
+                                <th className="py-2">Type</th>
+                                <th className="py-2">Amount (Wei)</th>
+                                <th className="py-2">Interest Gained (Wei)</th>
+                                <th className="py-2">Date & Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {allDeals.map((deal, index) => (
+                                <tr key={index} className="text-center">
+                                    <td className="py-2">{deal.type}</td>
+                                    <td className="py-2">{deal.amount}</td>
+                                    <td className="py-2">{deal.interestGained}</td>
+                                    <td className="py-2">{new Date(deal.dateTime).toLocaleString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </div>
     );

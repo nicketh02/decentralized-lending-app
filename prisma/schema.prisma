@@ -14,20 +14,23 @@ datasource db {
 }
 
 model User {
-  user_id   Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  address   String
-  type      String
-  createdAt DateTime @default(now())
+  user_id         Int               @id @default(autoincrement())
+  email           String            @unique
+  password        String
+  address         String
+  type            String
+  createdAt       DateTime          @default(now())
+  AllDealsLenders AllDealsLenders[]
 
   @@index([email])
 }
 
 model AllDealsLenders {
   id             Int      @id @default(autoincrement())
+  userId         Int
   type           String
   amount         Float
-  interestGained Float?
-  dateTime       DateTime @default(now())
+  interestGained Float
+  dateTime       DateTime
+  User           User     @relation(fields: [userId], references: [user_id])
 }
