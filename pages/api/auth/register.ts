@@ -1,4 +1,3 @@
-// pages/api/auth/register.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '../../../lib/prisma';
 import { hashPassword } from '../../../lib/auth';
