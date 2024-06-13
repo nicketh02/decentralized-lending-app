@@ -2,17 +2,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../../components/layout';
 
-
 export default function SignUp() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [address, setAddress] = useState('');
     const [type, setType] = useState('borrower'); // Default to borrower
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
+        setSuccess('');
+
         const res = await fetch('/api/auth/register', {
             method: 'POST',
             headers: {
@@ -21,10 +24,14 @@ export default function SignUp() {
             body: JSON.stringify({ email, password, address, type }),
         });
 
+        const data = await res.json();
+
         if (res.status === 201) {
-            router.push('/auth/signin');
+            setSuccess('Account successfully created! Redirecting to sign in...');
+            setTimeout(() => {
+                router.push('/auth/signin');
+            }, 2000);
         } else {
-            const data = await res.json();
             setError(data.error);
         }
     };
@@ -95,6 +102,7 @@ export default function SignUp() {
                         </button>
                     </form>
                     {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
+                    {success && <p className="text-green-500 mt-4 text-center">{success}</p>}
                 </div>
             </div>
         </Layout>
