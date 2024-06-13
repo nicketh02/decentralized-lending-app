@@ -12,8 +12,12 @@ const Borrowers = () => {
     const [stakeAmount, setStakeAmount] = useState('');
     const [tokenAmount, setTokenAmount] = useState('');
     const [approveAmount, setApproveAmount] = useState('');
+    const [repayInputAmount, setRepayInputAmount] = useState('');
     const [borrowerInfo, setBorrowerInfo] = useState(null);
+    const [loanAmount, setLoanAmount] = useState(0);
     const [repaymentAmount, setRepaymentAmount] = useState(0);
+    const [stackedTokens, setStackedTokens] = useState(0);
+    const [interestRate, setInterestRate] = useState(0);
     const [timeLeft, setTimeLeft] = useState(0);
     const [canClaimCollateral, setCanClaimCollateral] = useState(false);
 
@@ -50,7 +54,12 @@ const Borrowers = () => {
                 const timeLeftToRepay = BigInt(info.loanDuration) - (currentTime - BigInt(info.borrowTime));
                 setTimeLeft(Number(timeLeftToRepay));
                 setCanClaimCollateral(timeLeftToRepay <= BigInt(0) && BigInt(info.repaymentAmount) > BigInt(0));
+                setLoanAmount(parseFloat(ethers.formatUnits(info.loanAmount, 'wei')));
                 setRepaymentAmount(parseFloat(ethers.formatUnits(info.repaymentAmount, 'wei')));
+                setStackedTokens(parseFloat(ethers.formatUnits(info.stackedTokens, 'wei')));
+
+                const rate = await borrowerContract.interestRate();
+                setInterestRate(parseFloat(ethers.formatUnits(rate, 'wei')));
             } catch (error) {
                 console.error('Error fetching borrower info:', error);
             }
@@ -107,7 +116,7 @@ const Borrowers = () => {
         if (typeof window.ethereum !== 'undefined') {
             try {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
-                const tx = await escrowContract.repay({ value: ethers.parseUnits(repaymentAmount.toString(), 'wei') });
+                const tx = await escrowContract.repay({ value: ethers.parseUnits(repayInputAmount, 'wei') });
                 await tx.wait();
                 fetchBorrowerInfo();
             } catch (error) {
@@ -155,6 +164,19 @@ const Borrowers = () => {
         }
     };
 
+    const handleClaimStackedTokens = async () => {
+        if (typeof window.ethereum !== 'undefined') {
+            try {
+                const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
+                const tx = await escrowContract.claimStackedTokens();
+                await tx.wait();
+                fetchBorrowerInfo();
+            } catch (error) {
+                console.error('Error claiming stacked tokens:', error);
+            }
+        }
+    };
+
     if (!session) {
         return <div className="flex items-center justify-center min-h-screen text-lg">Loading...</div>;
     }
@@ -162,88 +184,112 @@ const Borrowers = () => {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
             <h2 className="text-2xl font-bold mb-4">Borrower Section</h2>
-            <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
-                <div className="mb-4">
-                    <h3 className="text-lg font-semibold">Amount Borrowed</h3>
-                    <p>{borrowerInfo && (borrowerInfo as any).repaymentAmount ? ethers.formatUnits((borrowerInfo as any).repaymentAmount.toString(), 'wei') : 0} Wei</p>
+            <div className="bg-white p-6 rounded shadow-md w-full max-w-4xl flex">
+                <div className="w-1/2 p-4">
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold">Amount Borrowed</h3>
+                        <p>{loanAmount} Wei</p>
+                    </div>
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold">Repayment Amount</h3>
+                        <p>{repaymentAmount} Wei</p>
+                    </div>
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold">Interest Rate</h3>
+                        <p>{interestRate / 100} %</p>
+                    </div>
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold">Stacked Tokens</h3>
+                        <p>{stackedTokens} Wei</p>
+                    </div>
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold">Time Left to Repay</h3>
+                        <p>{timeLeft > 0 ? `${timeLeft} seconds` : 'Time is up!'}</p>
+                    </div>
                 </div>
-                <div className="mb-4">
-                    <h3 className="text-lg font-semibold">Repayment Amount</h3>
-                    <p>{repaymentAmount} Wei</p>
-                </div>
-                <div className="mb-4">
-                    <h3 className="text-lg font-semibold">Time Left to Repay</h3>
-                    <p>{timeLeft > 0 ? `${timeLeft} seconds` : 'Time is up!'}</p>
-                </div>
-                <div className="mb-4">
-                    <input
-                        type="number"
-                        value={borrowAmount}
-                        onChange={(e) => setBorrowAmount(e.target.value)}
-                        placeholder="Borrow Amount in Wei"
-                        className="w-full p-2 border rounded"
-                    />
-                    <input
-                        type="number"
-                        value={loanDuration}
-                        onChange={(e) => setLoanDuration(e.target.value)}
-                        placeholder="Loan Duration in seconds"
-                        className="w-full p-2 border rounded mt-2"
-                    />
-                    <button onClick={handleBorrow} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
-                        Borrow
-                    </button>
-                </div>
-                <div className="mb-4">
-                    <button onClick={handleRepay} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
-                        Repay
-                    </button>
-                </div>
-                <div className="mb-4">
-                    <input
-                        type="number"
-                        value={tokenAmount}
-                        onChange={(e) => setTokenAmount(e.target.value)}
-                        placeholder="Get Tokens Amount in Wei"
-                        className="w-full p-2 border rounded"
-                    />
-                    <button onClick={handleGetTokens} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
-                        Get Tokens
-                    </button>
-                </div>
-                <div className="mb-4">
-                    <input
-                        type="number"
-                        value={approveAmount}
-                        onChange={(e) => setApproveAmount(e.target.value)}
-                        placeholder="Approve Tokens Amount in Wei"
-                        className="w-full p-2 border rounded"
-                    />
-                    <button onClick={handleApprove} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
-                        Approve Tokens
-                    </button>
-                </div>
-                <div className="mb-4">
-                    <input
-                        type="number"
-                        value={stakeAmount}
-                        onChange={(e) => setStakeAmount(e.target.value)}
-                        placeholder="Stake Amount in Wei"
-                        className="w-full p-2 border rounded"
-                    />
-                    <button onClick={handleStakeTokens} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
-                        Stake Tokens
-                    </button>
-                </div>
-                <div className="mb-4">
-                    <button
-                        onClick={handleClaimCollateral}
-                        disabled={!canClaimCollateral}
-                        className={`w-full py-2 rounded ${canClaimCollateral ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-500 text-gray-300 cursor-not-allowed'}`}
-                    >
-                        Claim Collateral
-                    </button>
-                    {!canClaimCollateral && <p className="text-red-500 text-sm">Cannot claim collateral until the loan duration expires and repayment is due.</p>}
+                <div className="w-1/2 p-4">
+                    <div className="mb-4">
+                        <input
+                            type="number"
+                            value={borrowAmount}
+                            onChange={(e) => setBorrowAmount(e.target.value)}
+                            placeholder="Borrow Amount in Wei"
+                            className="w-full p-2 border rounded"
+                        />
+                        <input
+                            type="number"
+                            value={loanDuration}
+                            onChange={(e) => setLoanDuration(e.target.value)}
+                            placeholder="Loan Duration in seconds"
+                            className="w-full p-2 border rounded mt-2"
+                        />
+                        <button onClick={handleBorrow} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                            Borrow
+                        </button>
+                    </div>
+                    <div className="mb-4">
+                        <input
+                            type="number"
+                            value={repayInputAmount}
+                            onChange={(e) => setRepayInputAmount(e.target.value)}
+                            placeholder="Repayment Amount in Wei"
+                            className="w-full p-2 border rounded"
+                        />
+                        <button onClick={handleRepay} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                            Repay
+                        </button>
+                    </div>
+                    <div className="mb-4">
+                        <input
+                            type="number"
+                            value={tokenAmount}
+                            onChange={(e) => setTokenAmount(e.target.value)}
+                            placeholder="Get Tokens Amount in Wei"
+                            className="w-full p-2 border rounded"
+                        />
+                        <button onClick={handleGetTokens} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                            Get Tokens
+                        </button>
+                    </div>
+                    <div className="mb-4">
+                        <input
+                            type="number"
+                            value={approveAmount}
+                            onChange={(e) => setApproveAmount(e.target.value)}
+                            placeholder="Approve Tokens Amount in Wei"
+                            className="w-full p-2 border rounded"
+                        />
+                        <button onClick={handleApprove} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                            Approve Tokens
+                        </button>
+                    </div>
+                    <div className="mb-4">
+                        <input
+                            type="number"
+                            value={stakeAmount}
+                            onChange={(e) => setStakeAmount(e.target.value)}
+                            placeholder="Stake Amount in Wei"
+                            className="w-full p-2 border rounded"
+                        />
+                        <button onClick={handleStakeTokens} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                            Stake Tokens
+                        </button>
+                    </div>
+                    <div className="mb-4">
+                        <button
+                            onClick={handleClaimCollateral}
+                            disabled={!canClaimCollateral}
+                            className={`w-full py-2 rounded ${canClaimCollateral ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-500 text-gray-300 cursor-not-allowed'}`}
+                        >
+                            Claim Collateral
+                        </button>
+                        {!canClaimCollateral && <p className="text-red-500 text-sm">Cannot claim collateral until the loan duration expires and repayment is due.</p>}
+                    </div>
+                    <div className="mb-4">
+                        <button onClick={handleClaimStackedTokens} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                            Claim Stacked Tokens
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
