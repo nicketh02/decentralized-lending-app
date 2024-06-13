@@ -71,9 +71,16 @@ const Borrowers = () => {
             try {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
                 const tx = await escrowContract.getTokens(ethers.parseUnits(tokenAmount, 'wei'));
-                await tx.wait();
-                fetchBorrowerInfo();
-            } catch (error) {
+                const receipt = await tx.wait();
+
+                if (receipt.status === 1) {
+                    alert('Get Tokens transaction successful');
+                    fetchBorrowerInfo();
+                } else {
+                    alert('Get Tokens transaction failed');
+                }
+            } catch (error: any) {
+                alert(`Error getting tokens: ${error.message}`);
                 console.error('Error getting tokens:', error);
             }
         }
@@ -84,9 +91,16 @@ const Borrowers = () => {
             try {
                 const tokenContract = new ethers.Contract(tokenContractAddress, tokenabi, await signer);
                 const tx = await tokenContract.approve(escrowContractAddress, ethers.parseUnits(approveAmount, 'wei'));
-                await tx.wait();
-                fetchBorrowerInfo();
-            } catch (error) {
+                const receipt = await tx.wait();
+
+                if (receipt.status === 1) {
+                    alert('Approve Tokens transaction successful');
+                    fetchBorrowerInfo();
+                } else {
+                    alert('Approve Tokens transaction failed');
+                }
+            } catch (error: any) {
+                alert(`Error approving tokens: ${error.message}`);
                 console.error('Error approving tokens:', error);
             }
         }
@@ -104,9 +118,16 @@ const Borrowers = () => {
                     ethers.parseUnits(borrowAmount, 'wei'),
                     parseInt(loanDuration, 10)
                 );
-                await tx.wait();
-                fetchBorrowerInfo();
-            } catch (error) {
+                const receipt = await tx.wait();
+
+                if (receipt.status === 1) {
+                    alert('Borrow transaction successful');
+                    fetchBorrowerInfo();
+                } else {
+                    alert('Borrow transaction failed');
+                }
+            } catch (error: any) {
+                alert(`Error during borrowing: ${error.message}`);
                 console.error('Error during borrowing:', error);
             }
         }
@@ -117,9 +138,16 @@ const Borrowers = () => {
             try {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
                 const tx = await escrowContract.repay({ value: ethers.parseUnits(repayInputAmount, 'wei') });
-                await tx.wait();
-                fetchBorrowerInfo();
-            } catch (error) {
+                const receipt = await tx.wait();
+
+                if (receipt.status === 1) {
+                    alert('Repay transaction successful');
+                    fetchBorrowerInfo();
+                } else {
+                    alert('Repay transaction failed');
+                }
+            } catch (error: any) {
+                alert(`Error during repayment: ${error.message}`);
                 console.error('Error during repayment:', error);
             }
         }
@@ -143,9 +171,16 @@ const Borrowers = () => {
                 }
 
                 const tx = await escrowContract.claimCollateral((await signer).getAddress());
-                await tx.wait();
-                fetchBorrowerInfo();
-            } catch (error) {
+                const receipt = await tx.wait();
+
+                if (receipt.status === 1) {
+                    alert('Claim Collateral transaction successful');
+                    fetchBorrowerInfo();
+                } else {
+                    alert('Claim Collateral transaction failed');
+                }
+            } catch (error: any) {
+                alert(`Error during collateral claim: ${error.message}`);
                 console.error('Error during collateral claim:', error);
             }
         }
@@ -156,9 +191,16 @@ const Borrowers = () => {
             try {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
                 const tx = await escrowContract.stakeTokens(ethers.parseUnits(stakeAmount, 'wei'));
-                await tx.wait();
-                fetchBorrowerInfo();
-            } catch (error) {
+                const receipt = await tx.wait();
+
+                if (receipt.status === 1) {
+                    alert('Stake Tokens transaction successful');
+                    fetchBorrowerInfo();
+                } else {
+                    alert('Stake Tokens transaction failed');
+                }
+            } catch (error: any) {
+                alert(`Error staking tokens: ${error.message}`);
                 console.error('Error staking tokens:', error);
             }
         }
@@ -169,9 +211,16 @@ const Borrowers = () => {
             try {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
                 const tx = await escrowContract.claimStackedTokens();
-                await tx.wait();
-                fetchBorrowerInfo();
-            } catch (error) {
+                const receipt = await tx.wait();
+
+                if (receipt.status === 1) {
+                    alert('Claim Stacked Tokens transaction successful');
+                    fetchBorrowerInfo();
+                } else {
+                    alert('Claim Stacked Tokens transaction failed');
+                }
+            } catch (error: any) {
+                alert(`Error claiming stacked tokens: ${error.message}`);
                 console.error('Error claiming stacked tokens:', error);
             }
         }
