@@ -81,10 +81,17 @@ const Lenders = () => {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
 
                 const tx = await escrowContract.deposit({ value: ethers.parseUnits(depositAmount, 'wei') });
-                await tx.wait();
-                await fetchDepositInfo();
-                await saveDeal('deposit', parseFloat(depositAmount), 0, Number(session?.user.id)); // No interest for deposit
-            } catch (error) {
+                const receipt = await tx.wait();
+
+                if (receipt.status === 1) {
+                    alert('Deposit transaction successful');
+                    await fetchDepositInfo();
+                    await saveDeal('deposit', parseFloat(depositAmount), 0, Number(session?.user.id)); // No interest for deposit
+                } else {
+                    alert('Deposit transaction failed');
+                }
+            } catch (error: any) {
+                alert(`Error during deposit: ${error.message}`);
                 console.error('Error during deposit:', error);
             }
         }
@@ -96,11 +103,18 @@ const Lenders = () => {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
 
                 const tx = await escrowContract.withdraw();
-                await tx.wait();
-                await fetchDepositInfo();
-                const totalAmount = currentDeposit + interestEarned;
-                await saveDeal('withdraw', totalAmount, interestEarned, Number(session?.user.id));
-            } catch (error) {
+                const receipt = await tx.wait();
+
+                if (receipt.status === 1) {
+                    alert('Withdraw transaction successful');
+                    await fetchDepositInfo();
+                    const totalAmount = currentDeposit + interestEarned;
+                    await saveDeal('withdraw', totalAmount, interestEarned, Number(session?.user.id));
+                } else {
+                    alert('Withdraw transaction failed');
+                }
+            } catch (error: any) {
+                alert(`Error during withdraw: ${error.message}`);
                 console.error('Error during withdraw:', error);
             }
         }
