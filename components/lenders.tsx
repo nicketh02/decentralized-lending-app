@@ -3,7 +3,6 @@ import { ethers } from 'ethers';
 import { useSession } from 'next-auth/react';
 import escrowABI from '../contracts/Escrow.sol/Escrow.json';
 import lenderABI from '../contracts/Lender.sol/Lender.json';
-import tokenABI from '../contracts/PlatformToken.sol/PlatformToken.json';
 import axios from 'axios';
 
 interface Deal {
@@ -21,16 +20,18 @@ const Lenders = () => {
     const [interestRate, setInterestRate] = useState(0);
     const [allDeals, setAllDeals] = useState<Deal[]>([]);
     const [showAllDeals, setShowAllDeals] = useState(false);
+    const [newInterestRate, setNewInterestRate] = useState('');
+    const [isAdmin, setIsAdmin] = useState(false);
+    const adminAddress = process.env.NEXT_PUBLIC_ADMIN_ADDRESS ? process.env.NEXT_PUBLIC_ADMIN_ADDRESS : "0x0";
     const escrowabi = escrowABI["abi"];
     const lenderabi = lenderABI["abi"];
-    const tokenabi = tokenABI["abi"];
     const escrowContractAddress = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS ? process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS : "0x0";
-    const tokenContractAddress = process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS;
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = provider.getSigner();
 
     useEffect(() => {
         if (session) {
+            checkAdmin();
             fetchDepositInfo();
             fetchAllDeals(Number(session.user.id));
             const interval = setInterval(fetchDepositInfo, 10000); // Refresh every 10 seconds
@@ -38,22 +39,24 @@ const Lenders = () => {
         }
     }, [session]);
 
+    const checkAdmin = async () => {
+        const accounts = await provider.listAccounts();
+        if (accounts[0].address.toLowerCase() === adminAddress.toLowerCase()) {
+            setIsAdmin(true);
+        }
+    };
+
     const fetchDepositInfo = async () => {
         if (typeof window.ethereum !== 'undefined') {
-            console.log("escrow contract address - ", escrowContractAddress)
             const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
-            console.log("escrow address - ", await escrowContract.getAddress());
 
             try {
                 const lenderContractAddress = await escrowContract.lenderContract();
-                console.log("lender contract address - ", lenderContractAddress);
                 const lenderContract = new ethers.Contract(lenderContractAddress, lenderabi, await signer);
-                console.log("lender address - ", await lenderContract.getAddress());
 
-                const lenderInfo = await lenderContract.lenders((await provider.getSigner()).getAddress());
-                const interest = await lenderContract.totalInterestGained((await provider.getSigner()).getAddress());
+                const lenderInfo = await lenderContract.lenders((await signer).getAddress());
+                const interest = await lenderContract.totalInterestGained((await signer).getAddress());
                 const rate = await lenderContract.interestRate();
-                console.log("total interest gained - ", interest);
 
                 setCurrentDeposit(parseFloat(ethers.formatUnits(lenderInfo.amount, 'wei')));
                 setInterestEarned(parseFloat(ethers.formatUnits(interest, 'wei')));
@@ -81,17 +84,10 @@ const Lenders = () => {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
 
                 const tx = await escrowContract.deposit({ value: ethers.parseUnits(depositAmount, 'wei') });
-                const receipt = await tx.wait();
-
-                if (receipt.status === 1) {
-                    alert('Deposit transaction successful');
-                    await fetchDepositInfo();
-                    await saveDeal('deposit', parseFloat(depositAmount), 0, Number(session?.user.id)); // No interest for deposit
-                } else {
-                    alert('Deposit transaction failed');
-                }
-            } catch (error: any) {
-                alert(`Error during deposit: ${error.message}`);
+                await tx.wait();
+                await fetchDepositInfo();
+                await saveDeal('deposit', parseFloat(depositAmount), 0, Number(session?.user.id)); // No interest for deposit
+            } catch (error) {
                 console.error('Error during deposit:', error);
             }
         }
@@ -103,18 +99,11 @@ const Lenders = () => {
                 const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
 
                 const tx = await escrowContract.withdraw();
-                const receipt = await tx.wait();
-
-                if (receipt.status === 1) {
-                    alert('Withdraw transaction successful');
-                    await fetchDepositInfo();
-                    const totalAmount = currentDeposit + interestEarned;
-                    await saveDeal('withdraw', totalAmount, interestEarned, Number(session?.user.id));
-                } else {
-                    alert('Withdraw transaction failed');
-                }
-            } catch (error: any) {
-                alert(`Error during withdraw: ${error.message}`);
+                await tx.wait();
+                await fetchDepositInfo();
+                const totalAmount = currentDeposit + interestEarned;
+                await saveDeal('withdraw', totalAmount, interestEarned, Number(session?.user.id));
+            } catch (error) {
                 console.error('Error during withdraw:', error);
             }
         }
@@ -132,6 +121,22 @@ const Lenders = () => {
             await fetchAllDeals(userId);
         } catch (error) {
             console.error('Error saving deal:', error);
+        }
+    };
+
+    const handleChangeInterestRate = async () => {
+        if (typeof window.ethereum !== 'undefined' && newInterestRate) {
+            try {
+                const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
+                const tx = await escrowContract.changeLendersInterestRate(ethers.parseUnits(newInterestRate, 'wei'));
+                await tx.wait();
+                await fetchDepositInfo();
+                setNewInterestRate('');
+                alert('Interest rate changed successfully');
+            } catch (error) {
+                console.error('Error changing interest rate:', error);
+                alert('Failed to change interest rate');
+            }
         }
     };
 
@@ -156,6 +161,20 @@ const Lenders = () => {
                         <h3 className="text-lg font-semibold">Interest Rate</h3>
                         <p>{interestRate / 100} %</p>
                     </div>
+                    {isAdmin && (
+                        <div className="mb-4">
+                            <input
+                                type="number"
+                                value={newInterestRate}
+                                onChange={(e) => setNewInterestRate(e.target.value)}
+                                placeholder="New Interest Rate multiplied by 100"
+                                className="w-full p-2 border rounded"
+                            />
+                            <button onClick={handleChangeInterestRate} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                                Change Interest Rate
+                            </button>
+                        </div>
+                    )}
                 </div>
                 <div className="w-1/2 p-4">
                     <div className="mb-4">

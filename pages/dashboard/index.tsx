@@ -1,4 +1,3 @@
-import Navbar from '../../components/Navbar';
 import withAuth from '../../components/withAuth';
 import Lenders from '../../components/lenders';
 import Borrowers from '../../components/borrowers';

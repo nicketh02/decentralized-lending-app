@@ -20,17 +20,20 @@ const Borrowers = () => {
     const [interestRate, setInterestRate] = useState(0);
     const [timeLeft, setTimeLeft] = useState(0);
     const [canClaimCollateral, setCanClaimCollateral] = useState(false);
+    const [newInterestRate, setNewInterestRate] = useState('');
+    const [isAdmin, setIsAdmin] = useState(false);
+    const adminAddress = process.env.NEXT_PUBLIC_ADMIN_ADDRESS ? process.env.NEXT_PUBLIC_ADMIN_ADDRESS : "0x0";
 
     const escrowabi = escrowABI["abi"];
     const borrowerabi = borrowerABI["abi"];
     const tokenabi = tokenABI["abi"];
     const escrowContractAddress = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS ? process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS : "0x0";
-    const tokenContractAddress = process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS ? process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS : "0x0";
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = provider.getSigner();
 
     useEffect(() => {
         if (session) {
+            checkAdmin();
             fetchBorrowerInfo();
             if (repaymentAmount > 0) {
                 const interval = setInterval(fetchBorrowerInfo, 10000); // Refresh every 10 seconds
@@ -38,6 +41,13 @@ const Borrowers = () => {
             }
         }
     }, [session, repaymentAmount]);
+
+    const checkAdmin = async () => {
+        const accounts = await provider.listAccounts();
+        if (accounts[0].address.toLowerCase() === adminAddress.toLowerCase()) {
+            setIsAdmin(true);
+        }
+    };
 
     const fetchBorrowerInfo = async () => {
         if (typeof window.ethereum !== 'undefined') {
@@ -89,6 +99,8 @@ const Borrowers = () => {
     const handleApprove = async () => {
         if (typeof window.ethereum !== 'undefined') {
             try {
+                const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
+                const tokenContractAddress = await escrowContract.token();
                 const tokenContract = new ethers.Contract(tokenContractAddress, tokenabi, await signer);
                 const tx = await tokenContract.approve(escrowContractAddress, ethers.parseUnits(approveAmount, 'wei'));
                 const receipt = await tx.wait();
@@ -226,6 +238,22 @@ const Borrowers = () => {
         }
     };
 
+    const handleChangeInterestRate = async () => {
+        if (typeof window.ethereum !== 'undefined' && newInterestRate) {
+            try {
+                const escrowContract = new ethers.Contract(escrowContractAddress, escrowabi, await signer);
+                const tx = await escrowContract.changeBorrowersInterestRate(ethers.parseUnits(newInterestRate, 'wei'));
+                await tx.wait();
+                await fetchBorrowerInfo();
+                setNewInterestRate('');
+                alert('Interest rate changed successfully');
+            } catch (error) {
+                console.error('Error changing interest rate:', error);
+                alert('Failed to change interest rate');
+            }
+        }
+    };
+
     if (!session) {
         return <div className="flex items-center justify-center min-h-screen text-lg">Loading...</div>;
     }
@@ -255,6 +283,20 @@ const Borrowers = () => {
                         <h3 className="text-lg font-semibold">Time Left to Repay</h3>
                         <p>{timeLeft > 0 ? `${timeLeft} seconds` : 'Time is up!'}</p>
                     </div>
+                    {isAdmin && (
+                        <div className="mb-4">
+                            <input
+                                type="number"
+                                value={newInterestRate}
+                                onChange={(e) => setNewInterestRate(e.target.value)}
+                                placeholder="New Interest Rate multiplied by 100"
+                                className="w-full p-2 border rounded"
+                            />
+                            <button onClick={handleChangeInterestRate} className="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                                Change Interest Rate
+                            </button>
+                        </div>
+                    )}
                 </div>
                 <div className="w-1/2 p-4">
                     <div className="mb-4">
